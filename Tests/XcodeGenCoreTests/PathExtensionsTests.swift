@@ -1,7 +1,7 @@
 import Spectre
 import PathKit
 import XCTest
-import Core
+import XcodeGenCore
 import TestSupport
 
 class PathExtensionsTests: XCTestCase {
@@ -48,6 +48,7 @@ class PathExtensionsTests: XCTestCase {
                 try expect(relativePath(to: "/a/../../b", from: "/b")) == "."
                 try expect(relativePath(to: "a/..", from: "a")) == ".."
                 try expect(relativePath(to: "a/../b", from: "b")) == "."
+                try expect(relativePath(to: "/a/c", from: "/a/b/c")) == "../../c"
             }
 
             $0.it("backtracks on a non-normalized base path") {
