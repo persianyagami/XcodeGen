@@ -4,14 +4,17 @@
 </a>
 </p>
 <p align="center">
-  <a href="https://swift.org/package-manager">
-    <img src="https://img.shields.io/badge/spm-compatible-brightgreen.svg?style=for-the-badge" alt="Swift Package Manager" />
-  </a>
   <a href="https://github.com/yonaskolb/XcodeGen/releases">
-    <img src="https://img.shields.io/github/release/yonaskolb/xcodegen.svg?style=for-the-badge"/>
+    <img src="https://img.shields.io/github/release/yonaskolb/xcodegen.svg"/>
+  </a>
+  <a href="https://swiftpackageindex.com/yonaskolb/XcodeGen">
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fyonaskolb%2FXcodeGen%2Fbadge%3Ftype%3Dplatforms" alt="Swift Package Manager Platforms" />
+  </a>
+  <a href="https://swiftpackageindex.com/yonaskolb/XcodeGen">
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fyonaskolb%2FXcodeGen%2Fbadge%3Ftype%3Dswift-versions" alt="Swift Versions" />
   </a>
   <a href="https://github.com/yonaskolb/XcodeGen/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/yonaskolb/XcodeGen.svg?style=for-the-badge"/>
+    <img src="https://img.shields.io/github/license/yonaskolb/XcodeGen.svg"/>
   </a>
 </p>
 
@@ -32,7 +35,6 @@ The project spec is a YAML or JSON file that defines your targets, configuration
 - ✅ Distribute your spec amongst multiple files for easy **sharing** and overriding
 - ✅ Easily create **multi-platform** frameworks
 - ✅ Integrate **Carthage** frameworks without any work
-- ✅ Export **Dependency Diagrams** to view in [Graphviz](https://www.graphviz.org)
 
 Given an example project spec:
 
@@ -74,7 +76,7 @@ A project would be created with 2 connected targets, with all the required confi
 
 ## Installing
 
-Make sure Xcode 11 is installed first.
+Make sure the latest stable (non-beta) version of Xcode is installed first.
 
 ### [Mint](https://github.com/yonaskolb/mint)
 ```sh
@@ -110,7 +112,7 @@ swift run xcodegen
 Add the following to your Package.swift file's dependencies:
 
 ```swift
-.package(url: "https://github.com/yonaskolb/XcodeGen.git", from: "2.17.0"),
+.package(url: "https://github.com/yonaskolb/XcodeGen.git", from: "2.46.0"),
 ```
 
 And then import wherever needed: `import XcodeGenKit`
@@ -127,34 +129,13 @@ This will look for a project spec in the current directory called `project.yml` 
 
 Options:
 
-- **--spec**: An optional path to a `.yml` or `.json` project spec. Defaults to `project.yml`
+- **--spec**: An optional path to a `.yml` or `.json` project spec. Defaults to `project.yml`. (It is also possible to link to multiple spec files by comma separating them. Note that all other flags will be the same.)
 - **--project**: An optional path to a directory where the project will be generated. By default this is the directory the spec lives in.
 - **--quiet**: Suppress informational and success messages.
 - **--use-cache**: Used to prevent unnecessarily generating the project. If this is set, then a cache file will be written to when a project is generated. If `xcodegen` is later run but the spec and all the files it contains are the same, the project won't be generated.
 - **--cache-path**: A custom path to use for your cache file. This defaults to `~/.xcodegen/cache/{PROJECT_SPEC_PATH_HASH}`
 
-There are other commands as well such as `xcodegen dump` which lets out output the resolved spec in many different formats, or write it to a file. Use `xcodegen help` to see more detailed usage information.
-
-## Dependency Diagrams
-<details>
-  <summary>Click to expand!</summary>
-
-#### How to export dependency diagrams:
-
-To stdout:
-
-```
-xcodegen dump --type graphviz
-```
-
-To a file:
-
-```
-xcodegen dump --type graphviz --file Graph.viz
-```
-
-During implementation, `graphviz` formatting was validated using [GraphvizOnline](https://dreampuf.github.io/GraphvizOnline/), [WebGraphviz](http://www.webgraphviz.com), and [Graphviz on MacOS](graphviz.org).
-</details>
+There are other commands as well such as `xcodegen dump` which lets one output the resolved spec in many different formats, or write it to a file. Use `xcodegen help` to see more detailed usage information.
 
 ## Editing
 ```shell
@@ -162,7 +143,7 @@ git clone https://github.com/yonaskolb/XcodeGen.git
 cd XcodeGen
 swift package generate-xcodeproj
 ```
-This use Swift Project Manager to create an `xcodeproj` file that you can open, edit and run in Xcode, which makes editing any code easier.
+This uses Swift Package Manager to create an `xcodeproj` file that you can open, edit and run in Xcode, which makes editing any code easier.
 
 If you want to pass any required arguments when running in Xcode, you can edit the scheme to include launch arguments.
 

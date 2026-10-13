@@ -18,6 +18,7 @@ extension Project {
             testTargets: [],
             configVariants: ["Test", "Staging", "Prod"],
             gatherCoverageData: true,
+            storeKitConfiguration: "Configuration.storekit",
             disableMainThreadChecker: true,
             stopOnEveryMainThreadCheckerIssue: false,
             commandLineArguments: [
@@ -29,7 +30,8 @@ extension Project {
                 XCScheme.EnvironmentVariable(variable: "ENV2", value: "HELLO", enabled: false),
             ],
             preActions: [Scheme.ExecutionAction(name: "run", script: "script")],
-            postActions: [Scheme.ExecutionAction(name: "run", script: "script")]
+            postActions: [Scheme.ExecutionAction(name: "run", script: "script")],
+            management: Scheme.Management(shared: false, orderHint: 1, isShown: true)
         )
         for platform in Platform.allCases {
             let appTarget = Target(
@@ -115,8 +117,8 @@ extension Project {
                 Config(name: "Release Test", type: .release),
                 Config(name: "Debug Staging", type: .debug),
                 Config(name: "Release Staging", type: .release),
-                Config(name: "Debug Production", type: .debug),
-                Config(name: "Release Production", type: .release),
+                Config(name: "Debug Prod", type: .debug),
+                Config(name: "Release Prod", type: .release),
             ],
             targets: targets,
             aggregateTargets: [],

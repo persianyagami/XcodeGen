@@ -1,4 +1,11 @@
-include: recursive_test/recursive_test.yml
+name: IncludedPathsTest
+include:
+  - recursive_test/recursive_test.yml
+  - same_relative_path_test/same_relative_path_test.yml
+  - path: relative_local_package/inc.yml
+    relativePaths: true
+  - path: relative_file_groups/inc.yml
+    relativePaths: true
 configFiles:
   IncludedConfig: config
 projectReferences:
@@ -20,11 +27,14 @@ targets:
     entitlements:
       path: entitlements
     preBuildScripts:
-    - path: preBuildScript
+      - path: preBuildScript
     postCompileScripts:
-    - path: postCompileScript
+      - path: postCompileScript
     postBuildScripts:
-    - path: postBuildScript
+      - path: postBuildScript
+    scheme:
+      testPlans:
+        - path: TestPlan.xctestplan
 aggregateTargets:
   IncludedAggregateTarget:
     targets:
@@ -37,3 +47,11 @@ targetTemplates:
   Template1:
     sources:
       - template_source
+schemes:
+  Scheme:
+    build:
+      targets:
+        NewTarget: all
+    test:
+      testPlans:
+        - path: TestPlan.xctestplan

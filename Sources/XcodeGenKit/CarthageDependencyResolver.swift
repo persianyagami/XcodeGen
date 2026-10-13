@@ -68,6 +68,9 @@ public class CarthageDependencyResolver {
 
             if let target = projectTarget as? Target {
                 for dependency in target.dependencies {
+                    if case (false, false) = (dependency.link, dependency.embed ?? topLevelTarget.shouldEmbedCarthageDependencies) {
+                        continue
+                    }
                     guard !frameworks.contains(where: { $0.dependency == dependency }) else {
                         continue
                     }
@@ -148,6 +151,9 @@ extension Platform {
 
     public var carthageName: String {
         switch self {
+        case .auto:
+            // This is a dummy value
+            return "auto"
         case .iOS:
             return "iOS"
         case .tvOS:
@@ -156,6 +162,9 @@ extension Platform {
             return "watchOS"
         case .macOS:
             return "Mac"
+        case .visionOS:
+            // This is a dummy value because Carthage doesn't support visionOS.
+            return "visionOS"
         }
     }
 }

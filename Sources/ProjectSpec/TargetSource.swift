@@ -4,13 +4,19 @@ import PathKit
 
 public struct TargetSource: Equatable {
     public static let optionalDefault = false
-
-    public var path: String
+    
+    public var path: String {
+        didSet {
+            path = (path as NSString).standardizingPath
+        }
+    }
+    
     public var name: String?
     public var group: String?
     public var compilerFlags: [String]
     public var excludes: [String]
     public var includes: [String]
+    public var explicitFolders: [String]
     public var type: SourceType?
     public var optional: Bool
     public var buildPhase: BuildPhaseSpec?
@@ -18,6 +24,8 @@ public struct TargetSource: Equatable {
     public var createIntermediateGroups: Bool?
     public var attributes: [String]
     public var resourceTags: [String]
+    public var inferDestinationFiltersByPath: Bool?
+    public var destinationFilters: [SupportedDestination]?
 
     public enum HeaderVisibility: String {
         case `public`
@@ -40,20 +48,24 @@ public struct TargetSource: Equatable {
         compilerFlags: [String] = [],
         excludes: [String] = [],
         includes: [String] = [],
+        explicitFolders: [String] = [],
         type: SourceType? = nil,
         optional: Bool = optionalDefault,
         buildPhase: BuildPhaseSpec? = nil,
         headerVisibility: HeaderVisibility? = nil,
         createIntermediateGroups: Bool? = nil,
         attributes: [String] = [],
-        resourceTags: [String] = []
+        resourceTags: [String] = [],
+        inferDestinationFiltersByPath: Bool? = nil,
+        destinationFilters: [SupportedDestination]? = nil
     ) {
-        self.path = path
+        self.path = (path as NSString).standardizingPath
         self.name = name
         self.group = group
         self.compilerFlags = compilerFlags
         self.excludes = excludes
         self.includes = includes
+        self.explicitFolders = explicitFolders
         self.type = type
         self.optional = optional
         self.buildPhase = buildPhase
@@ -61,6 +73,8 @@ public struct TargetSource: Equatable {
         self.createIntermediateGroups = createIntermediateGroups
         self.attributes = attributes
         self.resourceTags = resourceTags
+        self.inferDestinationFiltersByPath = inferDestinationFiltersByPath
+        self.destinationFilters = destinationFilters
     }
 }
 
@@ -83,6 +97,7 @@ extension TargetSource: JSONObjectConvertible {
 
     public init(jsonDictionary: JSONDictionary) throws {
         path = try jsonDictionary.json(atKeyPath: "path")
+        path = (path as NSString).standardizingPath // Done in two steps as the compiler can't figure out the types otherwise
         name = jsonDictionary.json(atKeyPath: "name")
         group = jsonDictionary.json(atKeyPath: "group")
 
@@ -94,6 +109,7 @@ extension TargetSource: JSONObjectConvertible {
         headerVisibility = jsonDictionary.json(atKeyPath: "headerVisibility")
         excludes = jsonDictionary.json(atKeyPath: "excludes") ?? []
         includes = jsonDictionary.json(atKeyPath: "includes") ?? []
+        explicitFolders = jsonDictionary.json(atKeyPath: "explicitFolders") ?? []
         type = jsonDictionary.json(atKeyPath: "type")
         optional = jsonDictionary.json(atKeyPath: "optional") ?? TargetSource.optionalDefault
 
@@ -106,6 +122,12 @@ extension TargetSource: JSONObjectConvertible {
         createIntermediateGroups = jsonDictionary.json(atKeyPath: "createIntermediateGroups")
         attributes = jsonDictionary.json(atKeyPath: "attributes") ?? []
         resourceTags = jsonDictionary.json(atKeyPath: "resourceTags") ?? []
+        
+        inferDestinationFiltersByPath = jsonDictionary.json(atKeyPath: "inferDestinationFiltersByPath")
+        
+        if let destinationFilters: [SupportedDestination] = jsonDictionary.json(atKeyPath: "destinationFilters") {
+            self.destinationFilters = destinationFilters
+        }
     }
 }
 
@@ -115,6 +137,7 @@ extension TargetSource: JSONEncodable {
             "compilerFlags": compilerFlags,
             "excludes": excludes,
             "includes": includes,
+            "explicitFolders": explicitFolders,
             "name": name,
             "group": group,
             "headerVisibility": headerVisibility?.rawValue,
@@ -123,6 +146,8 @@ extension TargetSource: JSONEncodable {
             "createIntermediateGroups": createIntermediateGroups,
             "resourceTags": resourceTags,
             "path": path,
+            "inferDestinationFiltersByPath": inferDestinationFiltersByPath,
+            "destinationFilters": destinationFilters?.map { $0.rawValue },
         ]
 
         if optional != TargetSource.optionalDefault {

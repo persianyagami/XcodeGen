@@ -9,6 +9,8 @@ public struct SpecOptions: Equatable {
     public static let groupSortPositionDefault = GroupSortPosition.bottom
     public static let generateEmptyDirectoriesDefault = false
     public static let findCarthageFrameworksDefault = false
+    public static let useBaseInternationalizationDefault = true
+    public static let schemePathPrefixDefault = "../../"
 
     public var minimumXcodeGenVersion: Version?
     public var carthageBuildPath: String?
@@ -22,6 +24,7 @@ public struct SpecOptions: Equatable {
     public var tabWidth: UInt?
     public var indentWidth: UInt?
     public var xcodeVersion: String?
+    public var projectFormat: String?
     public var deploymentTarget: DeploymentTarget
     public var defaultConfig: String?
     public var transitivelyLinkDependencies: Bool
@@ -33,10 +36,14 @@ public struct SpecOptions: Equatable {
     public var localPackagesGroup: String?
     public var preGenCommand: String?
     public var postGenCommand: String?
+    public var useBaseInternationalization: Bool
+    public var schemePathPrefix: String
+    public var defaultSourceDirectoryType: SourceType?
 
     public enum ValidationType: String {
         case missingConfigs
         case missingConfigFiles
+        case missingTestPlans
     }
 
     public enum SettingPresets: String {
@@ -82,6 +89,7 @@ public struct SpecOptions: Equatable {
         tabWidth: UInt? = nil,
         usesTabs: Bool? = nil,
         xcodeVersion: String? = nil,
+        projectFormat: String? = nil,
         deploymentTarget: DeploymentTarget = .init(),
         disabledValidations: [ValidationType] = [],
         defaultConfig: String? = nil,
@@ -93,7 +101,10 @@ public struct SpecOptions: Equatable {
         findCarthageFrameworks: Bool = findCarthageFrameworksDefault,
         localPackagesGroup: String? = nil,
         preGenCommand: String? = nil,
-        postGenCommand: String? = nil
+        postGenCommand: String? = nil,
+        useBaseInternationalization: Bool = useBaseInternationalizationDefault,
+        schemePathPrefix: String = schemePathPrefixDefault,
+        defaultSourceDirectoryType: SourceType? = nil
     ) {
         self.minimumXcodeGenVersion = minimumXcodeGenVersion
         self.carthageBuildPath = carthageBuildPath
@@ -106,6 +117,7 @@ public struct SpecOptions: Equatable {
         self.indentWidth = indentWidth
         self.usesTabs = usesTabs
         self.xcodeVersion = xcodeVersion
+        self.projectFormat = projectFormat
         self.deploymentTarget = deploymentTarget
         self.disabledValidations = disabledValidations
         self.defaultConfig = defaultConfig
@@ -118,6 +130,9 @@ public struct SpecOptions: Equatable {
         self.localPackagesGroup = localPackagesGroup
         self.preGenCommand = preGenCommand
         self.postGenCommand = postGenCommand
+        self.useBaseInternationalization = useBaseInternationalization
+        self.schemePathPrefix = schemePathPrefix
+        self.defaultSourceDirectoryType = defaultSourceDirectoryType
     }
 }
 
@@ -136,6 +151,7 @@ extension SpecOptions: JSONObjectConvertible {
         developmentLanguage = jsonDictionary.json(atKeyPath: "developmentLanguage")
         usesTabs = jsonDictionary.json(atKeyPath: "usesTabs")
         xcodeVersion = jsonDictionary.json(atKeyPath: "xcodeVersion")
+        projectFormat = jsonDictionary.json(atKeyPath: "projectFormat")
         indentWidth = (jsonDictionary.json(atKeyPath: "indentWidth") as Int?).flatMap(UInt.init)
         tabWidth = (jsonDictionary.json(atKeyPath: "tabWidth") as Int?).flatMap(UInt.init)
         deploymentTarget = jsonDictionary.json(atKeyPath: "deploymentTarget") ?? DeploymentTarget()
@@ -149,6 +165,9 @@ extension SpecOptions: JSONObjectConvertible {
         localPackagesGroup = jsonDictionary.json(atKeyPath: "localPackagesGroup")
         preGenCommand = jsonDictionary.json(atKeyPath: "preGenCommand")
         postGenCommand = jsonDictionary.json(atKeyPath: "postGenCommand")
+        useBaseInternationalization = jsonDictionary.json(atKeyPath: "useBaseInternationalization") ?? SpecOptions.useBaseInternationalizationDefault
+        schemePathPrefix = jsonDictionary.json(atKeyPath: "schemePathPrefix") ?? SpecOptions.schemePathPrefixDefault
+        defaultSourceDirectoryType = jsonDictionary.json(atKeyPath: "defaultSourceDirectoryType")
         if jsonDictionary["fileTypes"] != nil {
             fileTypes = try jsonDictionary.json(atKeyPath: "fileTypes")
         } else {
@@ -171,13 +190,14 @@ extension SpecOptions: JSONEncodable {
             "developmentLanguage": developmentLanguage,
             "usesTabs": usesTabs,
             "xcodeVersion": xcodeVersion,
+            "projectFormat": projectFormat,
             "indentWidth": indentWidth.flatMap { Int($0) },
             "tabWidth": tabWidth.flatMap { Int($0) },
             "defaultConfig": defaultConfig,
             "localPackagesGroup": localPackagesGroup,
             "preGenCommand": preGenCommand,
             "postGenCommand": postGenCommand,
-            "fileTypes": fileTypes
+            "fileTypes": fileTypes.mapValues { $0.toJSONValue() }
         ]
 
         if settingPresets != SpecOptions.settingPresetsDefault {
@@ -191,6 +211,12 @@ extension SpecOptions: JSONEncodable {
         }
         if findCarthageFrameworks != SpecOptions.findCarthageFrameworksDefault {
             dict["findCarthageFrameworks"] = findCarthageFrameworks
+        }
+        if useBaseInternationalization != SpecOptions.useBaseInternationalizationDefault {
+            dict["useBaseInternationalization"] = useBaseInternationalization
+        }
+        if schemePathPrefix != SpecOptions.schemePathPrefixDefault {
+            dict["schemePathPrefix"] = schemePathPrefix
         }
 
         return dict

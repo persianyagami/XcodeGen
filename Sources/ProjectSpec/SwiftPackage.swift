@@ -7,8 +7,10 @@ public enum SwiftPackage: Equatable {
 
     public typealias VersionRequirement = XCRemoteSwiftPackageReference.VersionRequirement
 
-    case remote(url: String, versionRequirement: VersionRequirement)
-    case local(path: String)
+    static let githubPrefix = "https://github.com/"
+
+    case remote(url: String, versionRequirement: VersionRequirement, traits: [String]? = nil)
+    case local(path: String, group: String?, excludeFromProject: Bool, traits: [String]? = nil)
 
     public var isLocal: Bool {
         if case .local = self {
@@ -21,12 +23,28 @@ public enum SwiftPackage: Equatable {
 extension SwiftPackage: JSONObjectConvertible {
 
     public init(jsonDictionary: JSONDictionary) throws {
+        var traits: [String]?
+        if jsonDictionary["traits"] != nil {
+            // Need to assign the trait to a non-optional variable first to resolve method overloading ambiguity
+            let decodedTraits: [String] = try jsonDictionary.json(atKeyPath: "traits", invalidItemBehaviour: .fail)
+            traits = decodedTraits
+        }
+
         if let path: String = jsonDictionary.json(atKeyPath: "path") {
-            self = .local(path: path)
+            let customLocation: String? = jsonDictionary.json(atKeyPath: "group")
+            let excludeFromProject: Bool = jsonDictionary.json(atKeyPath: "excludeFromProject") ?? false
+            self = .local(path: path, group: customLocation, excludeFromProject: excludeFromProject, traits: traits)
         } else {
             let versionRequirement: VersionRequirement = try VersionRequirement(jsonDictionary: jsonDictionary)
             try Self.validateVersion(versionRequirement: versionRequirement)
-            self = .remote(url: try jsonDictionary.json(atKeyPath: "url"), versionRequirement: versionRequirement)
+            let url: String
+            if jsonDictionary["github"] != nil {
+                let github: String = try jsonDictionary.json(atKeyPath: "github")
+                url = "\(Self.githubPrefix)\(github)"
+            } else {
+                url = try jsonDictionary.json(atKeyPath: "url")
+            }
+            self = .remote(url: url, versionRequirement: versionRequirement, traits: traits)
         }
     }
 
@@ -57,8 +75,12 @@ extension SwiftPackage: JSONEncodable {
     public func toJSONValue() -> Any {
         var dictionary: JSONDictionary = [:]
         switch self {
-        case .remote(let url, let versionRequirement):
-            dictionary["url"] = url
+        case .remote(let url, let versionRequirement, let traits):
+            if url.hasPrefix(Self.githubPrefix) {
+                dictionary["github"] = url.replacingOccurrences(of: Self.githubPrefix, with: "")
+            } else {
+                dictionary["url"] = url
+            }
 
             switch versionRequirement {
 
@@ -76,38 +98,72 @@ extension SwiftPackage: JSONEncodable {
             case .revision(let revision):
                 dictionary["revision"] = revision
             }
+
+            if let traits {
+                dictionary["traits"] = traits
+            }
             return dictionary
-        case .local(let path):
+        case let .local(path, group, excludeFromProject, traits):
             dictionary["path"] = path
+            dictionary["group"] = group
+            dictionary["excludeFromProject"] = excludeFromProject
+            if let traits {
+                dictionary["traits"] = traits
+            }
         }
 
         return dictionary
     }
 }
 
-extension SwiftPackage.VersionRequirement: JSONObjectConvertible {
+extension SwiftPackage.VersionRequirement: JSONUtilities.JSONObjectConvertible {
 
     public init(jsonDictionary: JSONDictionary) throws {
-        if jsonDictionary["exactVersion"] != nil {
-            self = try .exact(jsonDictionary.json(atKeyPath: "exactVersion"))
-        } else if jsonDictionary["version"] != nil {
-            self = try .exact(jsonDictionary.json(atKeyPath: "version"))
-        } else if jsonDictionary["revision"] != nil {
-            self = try .revision(jsonDictionary.json(atKeyPath: "revision"))
-        } else if jsonDictionary["branch"] != nil {
-            self = try .branch(jsonDictionary.json(atKeyPath: "branch"))
-        } else if jsonDictionary["minVersion"] != nil && jsonDictionary["maxVersion"] != nil {
-            let minimum: String = try jsonDictionary.json(atKeyPath: "minVersion")
-            let maximum: String = try jsonDictionary.json(atKeyPath: "maxVersion")
-            self = .range(from: minimum, to: maximum)
-        } else if jsonDictionary["minorVersion"] != nil {
-            self = try .upToNextMinorVersion(jsonDictionary.json(atKeyPath: "minorVersion"))
-        } else if jsonDictionary["majorVersion"] != nil {
-            self = try .upToNextMajorVersion(jsonDictionary.json(atKeyPath: "majorVersion"))
-        } else if jsonDictionary["from"] != nil {
-            self = try .upToNextMajorVersion(jsonDictionary.json(atKeyPath: "from"))
+        func json(atKeyPath keyPath: String) -> String? {
+            if jsonDictionary[keyPath] != nil {
+                do {
+                    let value: String = try jsonDictionary.json(atKeyPath: .init(rawValue: keyPath))
+                    return value
+                } catch {
+                    do {
+                        let value: Double = try jsonDictionary.json(atKeyPath: .init(rawValue: keyPath))
+                        return String(value)
+                    } catch {
+                        return nil
+                    }
+                }
+            }
+            return nil
+        }
+        
+        if let exactVersion = json(atKeyPath: "exactVersion") {
+            self = .exact(exactVersion)
+        } else if let version = json(atKeyPath: "version") {
+            self = .exact(version)
+        } else if let revision = json(atKeyPath: "revision") {
+            self = .revision(revision)
+        } else if let branch = json(atKeyPath: "branch") {
+            self = .branch(branch)
+        } else if let minVersion = json(atKeyPath: "minVersion"), let maxVersion = json(atKeyPath: "maxVersion") {
+            self = .range(from: minVersion, to: maxVersion)
+        } else if let minorVersion = json(atKeyPath: "minorVersion") {
+            self = .upToNextMinorVersion(minorVersion)
+        } else if let majorVersion = json(atKeyPath: "majorVersion") {
+            self = .upToNextMajorVersion(majorVersion)
+        } else if let from = json(atKeyPath: "from") {
+            self = .upToNextMajorVersion(from)
         } else {
             throw SpecParsingError.unknownPackageRequirement(jsonDictionary)
         }
+    }
+}
+
+extension SwiftPackage: PathContainer {
+    static var pathProperties: [PathProperty] {
+        [
+            .dictionary([
+                .string("path"),
+            ]),
+        ]
     }
 }

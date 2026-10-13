@@ -36,7 +36,7 @@ The values from [xcconfig files](#xcconfig-files) will then sit a level above th
 XcodeGen applies default settings to your project and targets similar to how Xcode creates them when you create a new project or target.
 Debug and Release settings will be applied to your project. Targets will also get specific settings depending on the platform and product type.
 
->You can change or disable how these setting presets are applied via the `options.settingPresets` which you can find more about in [Options](#options)
+>You can change or disable how these setting presets are applied via the `options.settingPresets` which you can find more about in [Options](ProjectSpec.md#options)
 
 ### Settings
 The `project` and each `target` have a `settings` object that you can define. This can be a simple map of build settings or can provide build settings per `config` via `configs` or `base`. See [Settings](ProjectSpec.md#settings) for more details.
@@ -127,7 +127,7 @@ targets:
       - carthage: ReactiveMapKit 
 ```
 
-XcodeGen can look these up for you automatically! This can be enabled with a global `options.findCarthageFrameworks` or can be overriden for each Carthage dependency. Note that if this is enabled, the Carthage dependencies need to have already been built before XcodeGen is run. This is because XcodeGen loads `.version` files that Carthage writes in the `Carthage/Build` directory which lists the all the frameworks. The name you use must also be the name of the `.version` file Carthage writes to `Carthage/Build`. Be aware that in some cases this name can differ from the name of the repo in the Cartfile and even the framework name. If the `.version` file is not found or fails parsing, XcodeGen will fallback to the regular Framework lookup in the relevant Carthage directory.
+XcodeGen can look these up for you automatically! This can be enabled with a global `options.findCarthageFrameworks` or can be overridden for each Carthage dependency. Note that if this is enabled, the Carthage dependencies need to have already been built before XcodeGen is run. This is because XcodeGen loads `.version` files that Carthage writes in the `Carthage/Build` directory which lists the all the frameworks. The name you use must also be the name of the `.version` file Carthage writes to `Carthage/Build`. Be aware that in some cases this name can differ from the name of the repo in the Cartfile and even the framework name. If the `.version` file is not found or fails parsing, XcodeGen will fallback to the regular Framework lookup in the relevant Carthage directory.
 
 ```yml
 options:
@@ -203,4 +203,21 @@ targets:
   App:
     dependencies:
       - framework: Vendor/MyFramework.framework
+```
+
+# Build Tool Plug-ins
+XCodeGen supports working with [Swift Package Plug-ins](https://github.com/apple/swift-package-manager/blob/main/Documentation/Plugins.md#using-a-package-plugin).
+
+To use plugins, you need to specify in your target which plugin you want to connect, and don't forget to connect the package to target.
+
+```yaml
+packages:
+  Prefire:
+    url: https://github.com/BarredEwe/Prefire
+    from: 1.3.0
+targets:
+  App:
+    buildToolPlugins:
+      - plugin: PrefirePlaybookPlugin
+        package: Prefire
 ```

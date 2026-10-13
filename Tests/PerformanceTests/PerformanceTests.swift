@@ -1,6 +1,7 @@
 import Foundation
 import PathKit
 import ProjectSpec
+import TestSupport
 import XcodeGenKit
 import XcodeProj
 import XCTest
@@ -15,8 +16,9 @@ class GeneratedPerformanceTests: XCTestCase {
         try dumpYamlDictionary(project.toJSONDictionary(), path: specPath)
 
         measure {
-            let spec = try! SpecFile(path: specPath)
-            _ = spec.resolvedDictionary(variables: ProcessInfo.processInfo.environment)
+            let spec = try! SpecFile(path: specPath,
+                                     variables: ProcessInfo.processInfo.environment)
+            _ = spec.resolvedDictionary()
         }
     }
 
@@ -24,14 +26,14 @@ class GeneratedPerformanceTests: XCTestCase {
         let project = try Project.testProject(basePath: basePath)
         measure {
             let generator = ProjectGenerator(project: project)
-            _ = try! generator.generateXcodeProject()
+            _ = try! generator.generateXcodeProject(userName: "someUser")
         }
     }
 
     func testWriting() throws {
         let project = try Project.testProject(basePath: basePath)
         let generator = ProjectGenerator(project: project)
-        let xcodeProject = try generator.generateXcodeProject()
+        let xcodeProject = try generator.generateXcodeProject(userName: "someUser")
         measure {
             xcodeProject.pbxproj.invalidateUUIDs()
             try! xcodeProject.write(path: project.defaultProjectPath)
@@ -61,17 +63,19 @@ class FixturePerformanceTests: XCTestCase {
     }
 
     func testFixtureGeneration() throws {
+        try skipIfNecessary()
         let project = try Project(path: specPath)
         measure {
             let generator = ProjectGenerator(project: project)
-            _ = try! generator.generateXcodeProject()
+            _ = try! generator.generateXcodeProject(userName: "someUser")
         }
     }
 
     func testFixtureWriting() throws {
+        try skipIfNecessary()
         let project = try Project(path: specPath)
         let generator = ProjectGenerator(project: project)
-        let xcodeProject = try generator.generateXcodeProject()
+        let xcodeProject = try generator.generateXcodeProject(userName: "someUser")
         measure {
             xcodeProject.pbxproj.invalidateUUIDs()
             try! xcodeProject.write(path: project.defaultProjectPath)

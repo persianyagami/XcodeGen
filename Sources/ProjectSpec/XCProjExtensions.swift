@@ -26,6 +26,10 @@ extension PBXProductType {
         fileExtension == "appex"
     }
 
+    public var isSystemExtension: Bool {
+        fileExtension == "dext" || fileExtension == "systemextension"
+    }
+
     public var isApp: Bool {
         fileExtension == "app"
     }
@@ -35,7 +39,7 @@ extension PBXProductType {
     }
 
     public var isExecutable: Bool {
-        isApp || isExtension || isTest || self == .commandLineTool
+        isApp || isExtension || isSystemExtension || isTest || self == .commandLineTool
     }
 
     public var name: String {
@@ -44,8 +48,8 @@ extension PBXProductType {
 
     public var canSkipCompileSourcesBuildPhase: Bool {
         switch self {
-        case .bundle, .stickerPack, .messagesApplication:
-            // Bundles, sticker packs and simple messages applications without sources should not include a
+        case .bundle, .watch2App, .stickerPack, .messagesApplication:
+            // Bundles, watch apps, sticker packs and simple messages applications without sources should not include a
             // compile sources build phase. Doing so can cause Xcode to produce an error on build.
             return true
         default:
@@ -54,23 +58,21 @@ extension PBXProductType {
     }
 
     /// Function to determine when a dependendency should be embedded into the target
-    public func shouldEmbed(_ dependencyType: PBXProductType) -> Bool {
-        switch dependencyType {
-        case .staticLibrary, .staticFramework:
-            // Some dependendencies should not be embed, independently of the target type
+    public func shouldEmbed(_ dependencyTarget: Target) -> Bool {
+        guard dependencyTarget.defaultLinkage != .static || dependencyTarget.type.isFramework else {
+            // Non-framework static dependencies should never embed
             return false
+        }
 
-        default:
-            if isApp {
-                // If target is an app, all dependencies should be embed (except for the ones mentioned above)
-                return true
-            } else if isTest, [.framework, .bundle].contains(dependencyType) {
-                // If target is test, some dependencies should be embed (depending on their type)
-                return true
-            } else {
-                // If none of the above, do not embed the dependency
-                return false
-            }
+        if isApp {
+            // If target is an app, all dependencies should be embed (unless they're static)
+            return true
+        } else if isTest, [.framework, .staticFramework, .bundle].contains(dependencyTarget.type) {
+            // If target is test, some dependencies should be embed (depending on their type)
+            return true
+        } else {
+            // If none of the above, do not embed the dependency
+            return false
         }
     }
 }
@@ -79,18 +81,20 @@ extension Platform {
 
     public var emoji: String {
         switch self {
+        case .auto: return "🤖"
         case .iOS: return "📱"
         case .watchOS: return "⌚️"
         case .tvOS: return "📺"
         case .macOS: return "🖥"
+        case .visionOS: return "🕶️"
         }
     }
 }
 
-extension Target {
+extension ProjectTarget {
     public var shouldExecuteOnLaunch: Bool {
         // This is different from `type.isExecutable`, because we don't want to "run" a test
-        type.isApp || type.isExtension || type == .commandLineTool
+        type.isApp || type.isExtension || type.isSystemExtension || type == .commandLineTool
     }
 }
 
@@ -103,3 +107,30 @@ extension XCScheme.CommandLineArguments {
         self.init(arguments: args)
     }
 }
+
+extension BreakpointExtensionID {
+
+    init(string: String) throws {
+        if let id = BreakpointExtensionID(rawValue: "Xcode.Breakpoint.\(string)Breakpoint") {
+            self = id
+        } else if let id = BreakpointExtensionID(rawValue: string) {
+            self = id
+        } else {
+            throw SpecParsingError.unknownBreakpointType(string)
+        }
+    }
+}
+
+extension BreakpointActionExtensionID {
+
+    init(string: String) throws {
+        if let type = BreakpointActionExtensionID(rawValue: "Xcode.BreakpointAction.\(string)") {
+            self = type
+        } else if let type = BreakpointActionExtensionID(rawValue: string) {
+            self = type
+        } else {
+            throw SpecParsingError.unknownBreakpointActionType(string)
+        }
+    }
+}
+

@@ -3,7 +3,7 @@ import SwiftCLI
 import ProjectSpec
 import XcodeGenKit
 import PathKit
-import Core
+import XcodeGenCore
 import Version
 
 class ProjectCommand: Command {
@@ -12,8 +12,11 @@ class ProjectCommand: Command {
     let name: String
     let shortDescription: String
 
-    @Key("-s", "--spec", description: "The path to the project spec file. Defaults to project.yml")
-    var spec: Path?
+    @Flag("-q", "--quiet", description: "Suppress all informational and success output")
+    var quiet: Bool
+    
+    @Key("-s", "--spec", description: "The path to the project spec file. Defaults to project.yml. (It is also possible to link to multiple spec files by comma separating them. Note that all other flags will be the same.)")
+    var spec: String?
 
     @Key("-r", "--project-root", description: "The path to the project root directory. Defaults to the directory containing the project spec.")
     var projectRoot: Path?
@@ -28,26 +31,52 @@ class ProjectCommand: Command {
     }
 
     func execute() throws {
-
-        let projectSpecPath = (spec ?? "project.yml").absolute()
-
-        if !projectSpecPath.exists {
-            throw GenerationError.missingProjectSpec(projectSpecPath)
+        
+        var projectSpecs: [Path] = []
+        if let spec = spec {
+            projectSpecs = spec.components(separatedBy: ",").map { Path($0).absolute() }
+        } else {
+            projectSpecs = [ Path("project.yml").absolute() ]
         }
-
-        let specLoader = SpecLoader(version: version)
-        let project: Project
-
-        let variables: [String: String] = disableEnvExpansion ? [:] : ProcessInfo.processInfo.environment
-
-        do {
-            project = try specLoader.loadProject(path: projectSpecPath, projectRoot: projectRoot, variables: variables)
-        } catch {
-            throw GenerationError.projectSpecParsingError(error)
+        
+        for projectSpecPath in projectSpecs {
+            if !projectSpecPath.exists {
+                throw GenerationError.missingProjectSpec(projectSpecPath)
+            }
+            
+            
+            let specLoader = SpecLoader(version: version)
+            let project: Project
+            
+            let variables: [String: String] = disableEnvExpansion ? [:] : ProcessInfo.processInfo.environment
+            
+            do {
+                project = try specLoader.loadProject(path: projectSpecPath, projectRoot: projectRoot, variables: variables)
+            } catch {
+                throw GenerationError.projectSpecParsingError(error)
+            }
+            
+            try execute(specLoader: specLoader, projectSpecPath: projectSpecPath, project: project)
         }
-
-        try execute(specLoader: specLoader, projectSpecPath: projectSpecPath, project: project)
     }
 
     func execute(specLoader: SpecLoader, projectSpecPath: Path, project: Project) throws {}
+
+    func info(_ string: String) {
+        if !quiet {
+            stdout.print(string)
+        }
+    }
+
+    func warning(_ string: String) {
+        if !quiet {
+            stdout.print(string.yellow)
+        }
+    }
+
+    func success(_ string: String) {
+        if !quiet {
+            stdout.print(string.green)
+        }
+    }
 }
